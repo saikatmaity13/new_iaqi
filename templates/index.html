@@ -133,6 +133,8 @@
     </div>
 
     <script>
+        const backendURL = "https://indoor-air-pollutant-index.onrender.com";
+
         document.getElementById('uploadForm').addEventListener('submit', async (event) => {
             event.preventDefault();
 
@@ -154,7 +156,7 @@
             const formData = new FormData(form);
 
             try {
-                const response = await fetch(`/forecast/${selectedMetric}`, {
+                const response = await fetch(`${backendURL}/forecast/${selectedMetric}`, {
                     method: 'POST',
                     body: formData
                 });

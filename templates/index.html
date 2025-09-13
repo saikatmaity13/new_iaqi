@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air Quality Forecaster</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            background-color: #f8f9fa;
+            color: #212529;
+            max-width: 960px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        input[type="file"],
+        select {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: #0d6efd;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #0b5ed7;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            border: 1px solid #dee2e6;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f8f9fa;
+        }
+
+        #results-container {
+            display: none;
+        }
+
+        .error {
+            color: #dc3545;
+        }
+
+        .loading {
+            text-align: center;
+            font-style: italic;
+            color: #6c757d;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Air Quality Forecaster</h1>
+
+    <form id="uploadForm">
+        <div class="form-group">
+            <label for="file-input">Select a CSV file to upload:</label>
+            <input type="file" id="file-input" name="file" accept=".csv" required>
+        </div>
+
+        <div class="form-group">
+            <label for="metric-select">Select a metric to forecast:</label>
+            <select id="metric-select" name="metric">
+                <option value="PM2.5">PM2.5</option>
+                <option value="PM10">PM10</option>
+                <option value="CO">CO</option>
+            </select>
+        </div>
+
+        <button type="submit">Get Forecast</button>
+    </form>
+
+    <div id="results-container">
+        <h2 id="results-title">7-Day Forecast Results</h2>
+        <table id="results-table">
+            <thead>
+                <tr>
+                    <th>Day</th>
+                    <th>Date</th>
+                    <th id="metric-header">Metric Value</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const form = event.target;
+            const resultsContainer = document.getElementById('results-container');
+            const resultsTitle = document.getElementById('results-title');
+            const tableHeader = document.getElementById('metric-header');
+            const tableBody = document.querySelector("#results-table tbody");
+            const selectedMetric = document.getElementById('metric-select').value;
+
+            // Update table header and title based on selected metric
+            resultsTitle.textContent = `7-Day Forecast for ${selectedMetric}`;
+            tableHeader.textContent = `${selectedMetric}`;
+
+            // Clear previous results and show loading message
+            tableBody.innerHTML = '<tr><td colspan="3" class="loading">Loading...</td></tr>';
+            resultsContainer.style.display = 'block';
+
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch(`/forecast/${selectedMetric}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'An unknown error occurred.');
+                }
+
+                // Clear loading row
+                tableBody.innerHTML = '';
+
+                const forecasts = result.forecasts;
+                const today = new Date();
+
+                forecasts.forEach((dayData, index) => {
+                    const forecastDate = new Date();
+                    forecastDate.setDate(today.getDate() + index + 1);
+
+                    const row = tableBody.insertRow();
+                    row.innerHTML = `
+                        <td>${dayData.Day}</td>
+                        <td>${forecastDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</td>
+                        <td>${dayData[selectedMetric]}</td>
+                    `;
+                });
+
+            } catch (error) {
+                tableBody.innerHTML = `<tr><td colspan="3" class="error">Error: ${error.message}</td></tr>`;
+                console.error('Error:', error);
+            }
+        });
+    </script>
+
+</body>
+
+</html>

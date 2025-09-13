@@ -13,7 +13,7 @@ warnings.filterwarnings('ignore')
 app = Flask(__name__)
 
 # ✅ Allow both Vercel + localhost (for testing)
-CORS(app, resources={r"/*": {"origins": ["https://new-ia.vercel.app", "http://localhost:3000", "http://127.0.0.1:5000"]}})
+CORS(app, resources={r"/*": {"origins": ["https://new-iaqi.vercel.app", "http://localhost:3000", "http://127.0.0.1:5000"]}})
 
 
 def get_starting_data_for_forecast():

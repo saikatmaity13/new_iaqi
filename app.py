@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify
 import pandas as pd
 import warnings
 from datetime import timedelta
+from flask_cors import CORS   # ✅ Added import
 
 # --- Import your predictor and helper functions ---
 from predictor import predict_pm25, predict_pm10, predict_co
@@ -10,6 +11,9 @@ from train_models import create_lagged_data
 warnings.filterwarnings('ignore')
 
 app = Flask(__name__)
+
+# ✅ Enable CORS (only allow your Vercel frontend for safety)
+CORS(app, resources={r"/*": {"origins": "https://new-ia.vercel.app"}})
 
 
 def get_starting_data_for_forecast():
@@ -153,8 +157,6 @@ def forecast_metric(metric):
 
 
 import os
-
-# ... (rest of your code)
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))

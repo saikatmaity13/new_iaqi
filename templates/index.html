@@ -4,8 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Air Pollutant Forecaster</title>
+    <title>Indoor Air Pollutant Forecaster</title>
     <style>
+        /* --- Basic Page Styling --- */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.6;
@@ -18,8 +19,10 @@
 
         h1 {
             text-align: center;
+            color: #0d6efd;
         }
 
+        /* --- Form Styling --- */
         form {
             background-color: #fff;
             padding: 20px;
@@ -62,29 +65,33 @@
             background-color: #0b5ed7;
         }
 
+        /* --- Table Styling --- */
         table {
             width: 100%;
             border-collapse: collapse;
             background-color: #fff;
+            margin-top: 10px;
         }
 
         th,
         td {
             padding: 12px;
             border: 1px solid #dee2e6;
-            text-align: left;
+            text-align: center;
         }
 
         th {
-            background-color: #f8f9fa;
+            background-color: #e9ecef;
         }
 
         #results-container {
             display: none;
         }
 
+        /* --- Message Styling --- */
         .error {
             color: #dc3545;
+            font-weight: bold;
         }
 
         .loading {
@@ -92,84 +99,113 @@
             font-style: italic;
             color: #6c757d;
         }
+
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
     </style>
 </head>
 
 <body>
+    <header>
+        <h1>Indoor Air Pollutant Forecaster</h1>
+    </header>
 
-    <h1>Air Quality Forecaster</h1>
+    <main>
+        <!-- Upload Form -->
+        <form id="uploadForm">
+            <div class="form-group">
+                <label for="file-input">Select a CSV file to upload:</label>
+                <input type="file" id="file-input" name="file" accept=".csv" required>
+            </div>
 
-    <form id="uploadForm">
-        <div class="form-group">
-            <label for="file-input">Select a CSV file to upload:</label>
-            <input type="file" id="file-input" name="file" accept=".csv" required>
+            <div class="form-group">
+                <label for="metric-select">Select a metric to forecast:</label>
+                <select id="metric-select" name="metric">
+                    <option value="PM2.5">PM2.5</option>
+                    <option value="PM10">PM10</option>
+                    <option value="CO">CO</option>
+                </select>
+            </div>
+
+            <button type="submit">Get 7-Day Forecast</button>
+        </form>
+
+        <!-- Results Section -->
+        <div id="results-container">
+            <h2 id="results-title">7-Day Forecast Results</h2>
+            <table id="results-table">
+                <thead>
+                    <tr>
+                        <th>Day</th>
+                        <th>Date</th>
+                        <th id="metric-header">Metric Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Forecast rows will be injected here -->
+                </tbody>
+            </table>
         </div>
+    </main>
 
-        <div class="form-group">
-            <label for="metric-select">Select a metric to forecast:</label>
-            <select id="metric-select" name="metric">
-                <option value="PM2.5">PM2.5</option>
-                <option value="PM10">PM10</option>
-                <option value="CO">CO</option>
-            </select>
-        </div>
-
-        <button type="submit">Get Forecast</button>
-    </form>
-
-    <div id="results-container">
-        <h2 id="results-title">7-Day Forecast Results</h2>
-        <table id="results-table">
-            <thead>
-                <tr>
-                    <th>Day</th>
-                    <th>Date</th>
-                    <th id="metric-header">Metric Value</th>
-                </tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
-    </div>
+    <footer>
+        <p>Powered by Indoor Air Pollutant Index &middot; Backend: Flask on Render &middot; Frontend: Vercel</p>
+    </footer>
 
     <script>
+        // Backend endpoint (Flask deployed on Render)
         const backendURL = "https://indoor-air-pollutant-index.onrender.com";
 
+        // Attach event listener for form submission
         document.getElementById('uploadForm').addEventListener('submit', async (event) => {
             event.preventDefault();
 
-            const form = event.target;
             const resultsContainer = document.getElementById('results-container');
             const resultsTitle = document.getElementById('results-title');
             const tableHeader = document.getElementById('metric-header');
             const tableBody = document.querySelector("#results-table tbody");
             const selectedMetric = document.getElementById('metric-select').value;
+            const fileInput = document.getElementById('file-input');
 
-            // Update table header and title based on selected metric
+            // Validate file input
+            if (fileInput.files.length === 0) {
+                alert("Please upload a CSV file before submitting.");
+                return;
+            }
+
+            // Update UI
             resultsTitle.textContent = `7-Day Forecast for ${selectedMetric}`;
             tableHeader.textContent = `${selectedMetric}`;
-
-            // Clear previous results and show loading message
-            tableBody.innerHTML = '<tr><td colspan="3" class="loading">Loading...</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="3" class="loading">Loading forecast...</td></tr>';
             resultsContainer.style.display = 'block';
 
-            const formData = new FormData(form);
+            // Build FormData with only "file"
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
 
             try {
+                // Send request to backend
                 const response = await fetch(`${backendURL}/forecast/${selectedMetric}`, {
                     method: 'POST',
                     body: formData
                 });
 
-                const result = await response.json();
-
+                // Handle non-200 responses
                 if (!response.ok) {
-                    throw new Error(result.error || 'An unknown error occurred.');
+                    const errorText = await response.text();
+                    throw new Error(errorText || 'Server returned an error');
                 }
+
+                const result = await response.json();
 
                 // Clear loading row
                 tableBody.innerHTML = '';
 
+                // Parse forecasts
                 const forecasts = result.forecasts;
                 const today = new Date();
 
@@ -186,12 +222,12 @@
                 });
 
             } catch (error) {
+                // Show error in table
                 tableBody.innerHTML = `<tr><td colspan="3" class="error">Error: ${error.message}</td></tr>`;
-                console.error('Error:', error);
+                console.error('Fetch error:', error);
             }
         });
     </script>
-
 </body>
 
 </html>

@@ -194,21 +194,29 @@
                     body: formData
                 });
 
-                // Handle non-200 responses
+                // Log raw response for debugging
+                const rawText = await response.text();
+                console.log("Raw backend response:", rawText);
+
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(errorText || 'Server returned an error');
+                    throw new Error(`Server error (${response.status}): ${rawText}`);
                 }
 
-                const result = await response.json();
+                let result;
+                try {
+                    result = JSON.parse(rawText);
+                } catch (e) {
+                    throw new Error("Invalid JSON from backend: " + rawText);
+                }
 
                 // Clear loading row
                 tableBody.innerHTML = '';
 
                 // Parse forecasts
                 const forecasts = result.forecasts;
-                const today = new Date();
+                console.log("Parsed forecasts:", forecasts);
 
+                const today = new Date();
                 forecasts.forEach((dayData, index) => {
                     const forecastDate = new Date();
                     forecastDate.setDate(today.getDate() + index + 1);
